@@ -5,7 +5,7 @@ LIB_DIR  = ./third
 
 INCFLAGS = -I $(INC_DIR)/cJSON/include
 LDFLAGS	 = -L $(LIB_DIR)/cJSON/lib
-LDFLAGS += -lcjson -lcjson_utils
+# LDFLAGS += -lcjson -lcjson_utils
 
 CPPFLAGS = -g
 

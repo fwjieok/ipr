@@ -9,7 +9,6 @@
 #include <errno.h>
 
 #include "list.h"
-#include "ringbuf.h"
 
 #include "cJSON.h"
 #include "cJSON_Utils.h"
@@ -40,9 +39,7 @@ char *create_session_id(int client_fd) {
 	return sid;
 }
 
-void on_connection(int server_sockfd, fd_set *p_fdsets) {
-	static int client_index = 0;
-
+void on_connection(int server_sockfd) {
 	int client_fd = -1;
 	struct sockaddr_in client_addr;
 	socklen_t len = sizeof(client_addr);
@@ -60,22 +57,18 @@ void on_connection(int server_sockfd, fd_set *p_fdsets) {
 			sprintf(session->remote_addr, "%s", inet_ntoa(client_addr.sin_addr));
 
 			list_push(session_list, (void *)session);
-
-			printf("new session, p: %p\n", session);
 		}		
 	}
 }
 
-void on_session_close(Session *ss) {
+void on_session_close(Session *ss, fd_set *p_fdsets) {
 	printf("socket close, fd: %d\n", ss->socket_fd);	
 	LIST_FOREACH(session_list, first, next, cur) {
         if (cur->value) {
             Session *cur_ss = (Session *)cur->value;
-            if (ss->socket_fd == cur_ss->socket_fd) {            	
+            if (ss->socket_fd == cur_ss->socket_fd) {
             	shutdown(ss->socket_fd, SHUT_RDWR);
-				//list_remove(session_list, cur);
-				printf("p: %p\n", cur->value);
-				free(cur_ss);	
+				free(list_remove(session_list, cur));
 				break;			
 			}			
         }
@@ -88,7 +81,7 @@ void on_data_process(Session *ss) {
 	send(ss->socket_fd, (void *)package_buf, strlen(package_buf), 0);
 }
 
-void on_session_data(Session *ss) {
+void on_session_data(Session *ss, fd_set *p_fdsets) {
 	char socket_buf[1024] = {0};
 	int  buf_len = sizeof(socket_buf);
 
@@ -97,18 +90,18 @@ void on_session_data(Session *ss) {
 		if (ret < 0) {
 			break;
 		} else if (ret == 0) {			//Socket断开
-			on_session_close(ss);
+			on_session_close(ss, p_fdsets);
 			break;
 		} else {
 			if (ret < buf_len) {
-				printf("on_session_data: %s", socket_buf);
+				//printf("on_session_data: %s", socket_buf);
 				memset(ss->data_buf, 0, sizeof(ss->data_buf));
 				memcpy((void *)ss->data_buf, (void *)socket_buf, ret);
 				break;				
 			} else {
 
 			}
-			on_data_process(ss);
+			//on_data_process(ss);
 		}
 	}
 }
@@ -185,7 +178,7 @@ int main (int argc, char *argv[]) {
 
 	int stdin_fd = fileno(stdin);
 	while(true) {
-
+        FD_ZERO(&fdsets);
 		LIST_FOREACH(session_list, first, next, cur) {
 	        if (cur->value) {
 	            Session *ss = (Session *)cur->value;
@@ -196,7 +189,7 @@ int main (int argc, char *argv[]) {
 	        }
 	    }
 
-	    FD_SET(stdin_fd, &fdsets);					//stdin
+	    FD_SET(stdin_fd, &fdsets);          //stdin
 
 		FD_SET(server_sockfd, &fdsets);		//TCP Server
 		max_fd = MAX(max_fd, server_sockfd);
@@ -207,15 +200,15 @@ int main (int argc, char *argv[]) {
 
 		} else {			
 			if (FD_ISSET(server_sockfd, &fdsets)) {
-				on_connection(server_sockfd, &fdsets);
+				on_connection(server_sockfd);
 			} else if (FD_ISSET(stdin_fd, &fdsets)) {
 				on_stdin_process();
 			} else {
-				LIST_FOREACH(session_list, first, next, cur) {
-			        if (cur->value) {
-			            Session *ss = (Session *)cur->value;
+				LIST_FOREACH_SAFE(session_list, node) {
+			        if (node->value) {
+			            Session *ss = (Session *)node->value;
 			            if (ss && FD_ISSET(ss->socket_fd, &fdsets)) {
-							on_session_data(ss);
+							on_session_data(ss, &fdsets);
 						}
 			        }
 		    	}
