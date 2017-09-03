@@ -10,36 +10,35 @@
 #include <errno.h>
 
 #include "stdin_util.h"
-#include "daemon_tcp.h"
+#include "tcp_server.h"
 #include "list.h"
 
 #define MAX(a, b)  a>b?a:b
 
-
-Daemon_Tcp *daemon_tcp = NULL;
-Stdin_Util *stdin_util = NULL;
-
-void signal_handler(int sig_no) {
-	printf("on singal: %d\n", sig_no);
-	fflush(stdout);
-
-    if(sig_no == SIGINT) {
-    	if(daemon_tcp) {
-    		delete daemon_tcp;
-    	}
-    	if (stdin_util) {
-    		delete stdin_util;
-    	}
-
-        exit(-1);
-    }
-}
+#define CLIENT_NUM  10
 
 int on_stdin_process(char *data) {
 	char *cmd  = strsep(&data, ",");
 	char *ddd  = strsep(&data, ",");
 
 	printf("cmd: %s, data: %s\n", cmd, ddd);
+
+}
+
+TCP_Server *tcp_server = NULL;
+
+void signal_handler(int sig_no) {
+	printf("on singal: %d\n", sig_no);
+	fflush(stdout);
+
+    if(sig_no == SIGINT) {
+    	if(tcp_server) {
+    		tcp_server->close_all_session();
+    		delete tcp_server;
+    	}
+
+        exit(-1);
+    }
 }
 
 int main (int argc, char *argv[]) {
@@ -49,32 +48,41 @@ int main (int argc, char *argv[]) {
 	time_t time_now, time_last;
 	int counter = 0;
 
-	stdin_util = new Stdin_Util();
-	stdin_util->set_data_process_function(on_stdin_process);
-
-	daemon_tcp = new Daemon_Tcp();
-	if (daemon_tcp->start() < 0) {
-		printf("daemon_tcp start error!\n");
+	TCP_Server *tcp_server = new TCP_Server();
+	if (!tcp_server) {
+		printf("TCP Server Create Error\n");
+		exit(-1);
 	}
+
+	tcp_server->begin(1980);
+
+	printf("TCP_Server listening");
+	fflush(stdout);
+
+	Stdin_Util *stdin_util = new Stdin_Util();
+	//stdin_util->set_data_process_function(on_stdin_process);
 
 	while(true) {
 
 		stdin_util->loop();
 
-		daemon_tcp->loop();
+		tcp_server->loop();
 		
 		time_now = time(NULL);
 		if ((time_now - time_last) >= 1) {
 			time_last = time_now;
 
-			daemon_tcp->tick_1s();
 
-			printf(".");	
+
+			printf("............\n");
+			/*
 			if (counter++ > 10) {
 				printf("\n");
 				counter = 0;
-			}		
+			}
+			*/
 			fflush(stdout);
+
 			
 		}
 	}

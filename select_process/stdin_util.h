@@ -11,7 +11,8 @@
 
 typedef	int (*FUNCTION_STDIN_DATA_PROCESS)(char *data);
 
-class Stdin_Util {
+class Stdin_Util
+{
 private:
 	char buf[4096];
 	struct timeval timeout_val;
