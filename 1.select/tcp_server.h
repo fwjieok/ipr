@@ -11,11 +11,7 @@
 #include <time.h>
 #include <errno.h>
 
-#include "list.h"
-#include "socket_helper.h"
-
-class TCP_Server
-{
+class TCP_Server {
 private:
 	int  listen_port;
 	int  server_sockfd;
@@ -29,7 +25,7 @@ public:
 	TCP_Server();
 	~TCP_Server();
 
-	virtual void on_new_connection(Socket_Helper *socket_helper) = 0;
+	virtual void on_new_connection(int socket_fd) = 0;
 
 	int  begin(char *ip, int port);
 	void loop();

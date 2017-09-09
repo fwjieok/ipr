@@ -2,6 +2,7 @@
 #define DAEMON_TCP_CPP
 
 #include "daemon_tcp.h"
+#include "session_ipr_2.h"
 
 #define MAX(a, b)  a>b?a:b
 
@@ -34,57 +35,69 @@ int Daemon_Tcp::start() {
 }
 
 
-void Daemon_Tcp::on_new_connection(Socket_Helper *socket_helper) {
-	if (socket_helper) {
-		printf("new connection: %s:%d, socket_fd: %d\n", 
-			socket_helper->remote_addr, socket_helper->remote_port, socket_helper->socket_fd);
+void Daemon_Tcp::on_new_connection(int socket_fd) {
+	if (socket_fd <= 0) { return; }
 
-		list_push(session_list, (void *)socket_helper);
+	Session *session = new Session_ipr_2(socket_fd);
+
+	struct sockaddr_in client_addr;
+	socklen_t addr_len = 0;
+	if (0 == getpeername(socket_fd, (struct sockaddr *)&client_addr, &addr_len)) {
+		session->remote_addr = strdup(inet_ntoa(client_addr.sin_addr));
+		session->remote_port = ntohs(client_addr.sin_port);
+		printf("new connection: %s:%d, socket_fd: %d\n", session->remote_addr, ntohs(client_addr.sin_port), socket_fd);
 	}
+	
+	list_push(session_list, (void *)session);
 }
 
 void Daemon_Tcp::close_all_session() {
 	LIST_FOREACH_SAFE(session_list, cur) {
         if (cur->value) {
-            Socket_Helper *sh = (Socket_Helper *)cur->value;
-    		shutdown(sh->socket_fd, SHUT_RDWR);
-			free(list_remove(session_list, cur));
+            Session *session = (Session *)cur->value;
+    		session->session_close();
+			list_remove(session_list, cur);
+			delete session;
         }
 	}
 
 	list_destroy(session_list);
 }
 
-void Daemon_Tcp::on_session_close(Socket_Helper *sh) {
-	printf("socket close, fd: %d\n", sh->socket_fd);	
+void Daemon_Tcp::on_session_close(Session *session) {
+	if (!session) { return; }
+
+	printf("socket close, fd: %d\n", session->socket_fd);	
 	LIST_FOREACH_SAFE(session_list, cur) {
         if (cur->value) {
-            Socket_Helper *cur_sh = (Socket_Helper *)cur->value;
-            if (sh->socket_fd == cur_sh->socket_fd) {
-            	shutdown(sh->socket_fd, SHUT_RDWR);
-				free(list_remove(session_list, cur));
+            Session *cur_ss = (Session *)cur->value;
+            if (session->socket_fd == cur_ss->socket_fd) {
+            	session->session_close();		//session socket close
+            	list_remove(session_list, cur); //daemon list remove
+            	delete session;					//object delete
 				break;			
-			}			
+			}
         }
 	}
 }
 
-void Daemon_Tcp::on_session_data(Socket_Helper *sh) {
-	if (!sh) { return; }
+void Daemon_Tcp::on_session_data(Session *session) {
+	if (!session) { return; }
 
-	char socket_buf[2048] = {0};
-	int  buf_len = sizeof(socket_buf);
+	char buf[4096];
+	int len = read(session->socket_fd, buf, sizeof(buf));
+	if (len < 0) {
+		if (errno == EAGAIN || errno == EINTR || errno == EWOULDBLOCK) {
 
-	int ret = recv(sh->socket_fd, socket_buf, buf_len, 0);
-	if (ret < 0) {					
-		return;
-	} else if (ret == 0) {			//Socket断开
-		on_session_close(sh);
-	} else {		
-		printf("on_session_data: %s", socket_buf);
-
-		send(sh->socket_fd, (void *)socket_buf, ret, 0);
+		} else {
+			on_session_close(session);
+		}
+	} else if (len == 0) {
+		on_session_close(session);
+	} else {
+		session->do_process_data(buf, len);
 	}
+
 }
 
 void Daemon_Tcp::session_list_loop() {
@@ -92,10 +105,10 @@ void Daemon_Tcp::session_list_loop() {
 	FD_ZERO(&readfds);
 	LIST_FOREACH(session_list, first, next, cur) {
         if (cur->value) {
-            Socket_Helper *sh = (Socket_Helper *)cur->value;
-            if (sh && sh->socket_fd > 0) {
-				FD_SET(sh->socket_fd, &readfds);
-				max_fd = MAX(max_fd, sh->socket_fd);
+            Session *session = (Session *)cur->value;
+            if (session && session->socket_fd > 0) {
+				FD_SET(session->socket_fd, &readfds);
+				max_fd = MAX(max_fd, session->socket_fd);
 			}
         }
     }
@@ -107,9 +120,9 @@ void Daemon_Tcp::session_list_loop() {
 	} else {
 		LIST_FOREACH_SAFE(session_list, node) {
 	        if (node->value) {
-	            Socket_Helper *sh = (Socket_Helper *)node->value;
-	            if (sh && FD_ISSET(sh->socket_fd, &readfds)) {
-					on_session_data(sh);
+	            Session *session = (Session *)node->value;
+	            if (session && FD_ISSET(session->socket_fd, &readfds)) {
+					on_session_data(session);
 				}
 	        }
     	}
@@ -120,11 +133,19 @@ void Daemon_Tcp::loop() {
 	TCP_Server::loop();
 
 	session_list_loop();
-
 }
 
 void Daemon_Tcp::tick_1s() {
 	TCP_Server::tick_1s();
+
+	LIST_FOREACH(session_list, first, next, cur) {
+        if (cur->value) {
+            Session *session = (Session *)cur->value;
+            if (session) {
+				session->tick_1s();
+			}
+        }
+    }
 }
 
 

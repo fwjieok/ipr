@@ -1,5 +1,4 @@
 #include "tcp_server.h"
-#include "socket_helper.h"
 
 TCP_Server::TCP_Server() {
 
@@ -77,13 +76,13 @@ void TCP_Server::on_accept_process() {
 		fflush(stdout);
 		exit(-1);
 	} else {		
-		//if (on_new_connection) {
-			Socket_Helper *socket_helper = new Socket_Helper();
-			strcpy(socket_helper->remote_addr, inet_ntoa(client_addr.sin_addr));
-			socket_helper->remote_port = ntohs(client_addr.sin_port);
-			socket_helper->socket_fd   = client_fd;
-			on_new_connection(socket_helper);
-		//}
+		/*
+		Socket_Helper *socket_helper = new Socket_Helper();
+		strcpy(socket_helper->remote_addr, inet_ntoa(client_addr.sin_addr));
+		socket_helper->remote_port = ntohs(client_addr.sin_port);
+		socket_helper->socket_fd   = client_fd;
+		*/
+		on_new_connection(client_fd);
 	}
 }
 
