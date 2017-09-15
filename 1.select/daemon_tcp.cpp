@@ -41,7 +41,7 @@ void Daemon_Tcp::on_new_connection(int socket_fd) {
 	Session *session = new Session_ipr_2(socket_fd);
 
 	struct sockaddr_in client_addr;
-	socklen_t addr_len = 0;
+	socklen_t addr_len = sizeof(client_addr);
 	if (0 == getpeername(socket_fd, (struct sockaddr *)&client_addr, &addr_len)) {
 		session->remote_addr = strdup(inet_ntoa(client_addr.sin_addr));
 		session->remote_port = ntohs(client_addr.sin_port);
@@ -130,9 +130,9 @@ void Daemon_Tcp::session_list_loop() {
 }
 
 void Daemon_Tcp::loop() {
-	TCP_Server::loop();
+	TCP_Server::loop();        //处理TCP Server accept事件
 
-	session_list_loop();
+	session_list_loop();       //处理Session data read事件
 }
 
 void Daemon_Tcp::tick_1s() {

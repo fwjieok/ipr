@@ -41,7 +41,6 @@ public:
 	
 	struct runtime runtime;
 
-	//virtual void on_session_data() = 0;
 	virtual void do_process_data(char *buf, int len) = 0;
 	virtual void session_close()   = 0;
 	virtual void tick_1s()         = 0;   

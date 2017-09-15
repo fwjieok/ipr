@@ -17,8 +17,6 @@ private:
 	List *session_list;	
 
 public:
-
-public:
 	Daemon_Tcp();
 	~Daemon_Tcp();
 

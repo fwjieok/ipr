@@ -111,7 +111,7 @@ Client.prototype.ack_timeout = function() {
 
 Client.prototype.send = function(package_type, rollseq, package_data) {
     var data = package_type + ',' + rollseq + ',' + package_data;
-    var pkg  = '\r\n' + data + '\r\n';
+    var pkg  = data + '\r\n';
     console.log('[send],'+(new Date()).format() + ',' + this.name + ',' + data);
     this.socket.write(pkg);
 }

@@ -24,7 +24,6 @@ public:
 	virtual void do_process_package() = 0;
 
 	void do_process_data(char *buf, int len);
-	//void on_session_data();
 	void session_close();
 	void tick_1s();
 };
