@@ -1,7 +1,6 @@
 #include <stdio.h>
 #include <string.h>
 #include <unistd.h>
-
 #include <sys/socket.h>
 #include <errno.h>
 
@@ -32,8 +31,8 @@ void Session_tcp::do_process_data(char *buf, int len) {
 	while (ringbuf_data_available(&rb) > 0) {
 		ringbuf_out(&rb, &ch, 1);
 
-		if ((ch == '\r' || ch == '\n') && package_len > 0) {
-			do_process_package();
+        if (ch == '\r' || ch == '\n') {
+            do_process_package();
 			memset(package_buf, 0, sizeof(package_buf));
 			package_len = 0;
 		} else {

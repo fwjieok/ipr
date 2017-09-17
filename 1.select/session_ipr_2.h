@@ -11,6 +11,10 @@ public:
 	~Session_ipr_2();
 
 	void do_process_package();
+    void on_dev_cmd        (char *cmd, char *param);
+    void on_dev_cmd_hi     (char *param);
+    void on_dev_cmd_event  (char *param);
+    void on_dev_cmd_report (char *param);
 };
 
 #endif

@@ -3,9 +3,8 @@
 Stdin_Util::Stdin_Util() {
 	timeout_val.tv_sec  = 0;
 	timeout_val.tv_usec = 0;
-
-	int stdin_fd = STDIN_FILENO;
-	function_data_process = NULL;
+	stdin_data_process  = NULL;
+    stdin_fd            = STDIN_FILENO;
 }
 
 Stdin_Util::~Stdin_Util() {
@@ -13,22 +12,20 @@ Stdin_Util::~Stdin_Util() {
 }
 
 void Stdin_Util::set_data_process_function(FUNCTION_STDIN_DATA_PROCESS function) {
-	function_data_process = function;
+	stdin_data_process = function;
 }
 
 void Stdin_Util::on_stdin_process() {
 	char *p = buf;
 	if (fgets(buf, sizeof(buf), stdin)) {
-		if (function_data_process) {
-			function_data_process(p);
+		if (stdin_data_process) {
+			stdin_data_process(p);
 		} else {
-			char *cmd  = strsep(&p, ",");
-			char *data = strsep(&p, ",");
-
-			printf("on_stdin_process: cmd: %s, data: %s\n", cmd, data);
+			char *cmd   = strsep(&p, ",");
+			char *param = p;
+            printf("on_stdin_process: cmd: %s, param: %s\n", cmd, param);
 		}
 	}
-
 }
 
 void Stdin_Util::loop() {
@@ -36,7 +33,7 @@ void Stdin_Util::loop() {
     FD_SET(stdin_fd, &readfds);          //stdin
 	int max_fd = stdin_fd + 1;
 	int ret = select(max_fd, &readfds, NULL, NULL, &timeout_val);
-	if (ret < 0) {
+	if (ret < 0) {          //select error
 		perror("select");
 	} else if (ret == 0) {	//timeout
 
@@ -46,5 +43,4 @@ void Stdin_Util::loop() {
 		}
 	}
 }
-
 

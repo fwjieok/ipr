@@ -11,11 +11,15 @@ Daemon_Tcp::Daemon_Tcp() {
 
 Daemon_Tcp::~Daemon_Tcp() {
 	close_all_session();
+
+    if (session_list) {
+        list_destroy(session_list);
+    }
 }
 
 int Daemon_Tcp::start() {
 
-	if (TCP_Server::begin((char *)"0.0.0.0", 1980) < 0) {
+	if (TCP_Server::begin((char *)"0.0.0.0", 2017) < 0) {
 		printf("TCP Server Listen Error\n");
 		return -1;
 	}
@@ -60,8 +64,6 @@ void Daemon_Tcp::close_all_session() {
 			delete session;
         }
 	}
-
-	list_destroy(session_list);
 }
 
 void Daemon_Tcp::on_session_close(Session *session) {
@@ -143,6 +145,26 @@ void Daemon_Tcp::tick_1s() {
             Session *session = (Session *)cur->value;
             if (session) {
 				session->tick_1s();
+			}
+        }
+    }
+}
+
+void Daemon_Tcp::debug_session_list() {
+    printf("------------------- session list -------------------\n");
+    printf("    acct \t model \t\t tid \t\t\t  netif  \t    ver   \t level \t  remote_addr\n");
+	LIST_FOREACH(session_list, first, next, cur) {
+        if (cur->value) {
+            Session *session = (Session *)cur->value;
+            if (session) {
+                printf("%8s \t %s \t %s \t %s \t %s \t %d \t %s\n",
+                       session->runtime.areas.acct,
+                       session->runtime.profile.model,
+                       session->runtime.profile.tid,
+                       session->runtime.netif,
+                       session->runtime.profile.ver,
+                       session->runtime.level,
+                       session->remote_addr);
 			}
         }
     }

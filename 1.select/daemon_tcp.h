@@ -31,6 +31,8 @@ public:
 	int  start();
 	void loop();
 	void tick_1s();
+
+    void debug_session_list();
 };
 
 

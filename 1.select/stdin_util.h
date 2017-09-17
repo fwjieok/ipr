@@ -18,7 +18,7 @@ private:
 	fd_set readfds;
 	int stdin_fd;
 
-	FUNCTION_STDIN_DATA_PROCESS function_data_process;
+	FUNCTION_STDIN_DATA_PROCESS stdin_data_process;
 
 	void on_stdin_process();
 

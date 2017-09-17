@@ -7,7 +7,6 @@ struct profile {
 	char *model;
 	char *ver;
 	char *sn;
-
 };
 
 struct areas {
@@ -25,6 +24,8 @@ struct runtime {
 	struct profile profile;
 	struct areas   areas;
 	struct flags   flags;
+    char *netif;
+    int   level;
 };
 
 class Session {
@@ -44,7 +45,6 @@ public:
 	virtual void do_process_data(char *buf, int len) = 0;
 	virtual void session_close()   = 0;
 	virtual void tick_1s()         = 0;   
-
 };
 
 #endif

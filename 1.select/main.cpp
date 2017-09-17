@@ -15,7 +15,6 @@
 
 #define MAX(a, b)  a>b?a:b
 
-
 Daemon_Tcp *daemon_tcp = NULL;
 Stdin_Util *stdin_util = NULL;
 
@@ -36,10 +35,16 @@ void signal_handler(int sig_no) {
 }
 
 int on_stdin_process(char *data) {
-	char *cmd  = strsep(&data, ",");
-	char *ddd  = strsep(&data, ",");
+	char *cmd   = strsep(&data, ",");
+	char *param = data;
 
-	printf("cmd: %s, data: %s\n", cmd, ddd);
+    printf("on_stdion_process, cmd: %s\n", cmd);
+    if (0 == strncmp(cmd, "debug", 5)) {
+
+    	if(daemon_tcp) {
+            daemon_tcp->debug_session_list();
+    	}
+    }
 }
 
 int main (int argc, char *argv[]) {
