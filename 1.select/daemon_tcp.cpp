@@ -168,6 +168,8 @@ void Daemon_Tcp::debug_session_list() {
 			}
         }
     }
+
+    printf("====== session list size: %d\n", session_list->count);
 }
 
 

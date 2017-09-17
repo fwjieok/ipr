@@ -17,6 +17,7 @@ void Session_ipr_2::do_process_package() {
     if (package[0] == 0) {
         return;
     }
+
     // printf("[recv] %s\n", package);
     
     char *pkg_type = strsep(&package, ",");
@@ -29,7 +30,7 @@ void Session_ipr_2::do_process_package() {
         char *cmd   = strsep(&package, ",");
         char *param = package;
         on_dev_cmd(cmd, param);
-        
+
         char ack_buf[1024];
         sprintf(ack_buf, "\nack,%s\r", pkg_seq);
         write(socket_fd, ack_buf, strlen(ack_buf));
@@ -50,6 +51,9 @@ void Session_ipr_2::on_dev_cmd(char *cmd, char *param) {
 }
 
 void Session_ipr_2::on_dev_cmd_hi(char *param) {
+    if (strstr(param, "test")) {   //backup connection
+        return;
+    }
     while(param != NULL) {
         char *field = strsep(&param, ",");
         char *name  = strsep(&field, ":");
